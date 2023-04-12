@@ -5,7 +5,9 @@ import (
 	"image"
 	"image/png"
 	"io"
+	"io/ioutil"
 	"mime/multipart"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"sync"
@@ -174,5 +176,26 @@ func TestTools_Slugify(t *testing.T) {
 		if !e.errorExpected && slug != e.expected {
 			t.Errorf("%s: wrong slug returned; expected %s but got %s", e.name, e.expected, slug)
 		}
+	}
+}
+func TestTools_DownloadStaticFile(t *testing.T) {
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/", nil)
+
+	var testTool Tools
+	testTool.DownloadStaticFile(rr, req, "./testdata", "pic.png", "puppy.jpg")
+
+	res := rr.Result()
+	defer res.Body.Close()
+
+	if res.Header["Content-Length"][0] != "98827" {
+		t.Error("Wrong content length of", res.Header["Content-Length"][0])
+	}
+	if res.Header["Content-Disposition"][0] != "attachment; filename=\"puppy.jpg\"" {
+		t.Error("Wrong content disposition")
+	}
+	_, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Error(err)
 	}
 }
